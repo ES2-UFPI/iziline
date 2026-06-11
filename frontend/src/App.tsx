@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import { RideSearchPage } from './carona/pages/RideSearchPage/RideSearchPage'
 import { NewTripPage } from './travel/pages/NewTripPage/NewTripPage'
+import { useAuth } from './auth/AuthContext'
+import { LoginPage } from './auth/pages/LoginPage/LoginPage'
 
 type AppView = 'newTrip' | 'rides'
 
@@ -24,6 +26,16 @@ function App() {
     }
   }, [])
 
+  const { user, loading, logout } = useAuth()
+
+  if (loading) {
+    return <div style={{ padding: 32 }}>Carregando...</div>
+  }
+
+  if (!user) {
+    return <LoginPage />
+  }
+
   function navigateTo(path: string, nextView: AppView) {
     window.history.pushState({}, '', path)
     setView(nextView)
@@ -45,6 +57,14 @@ function App() {
           onClick={() => navigateTo('/caronas', 'rides')}
         >
           Buscar caronas
+        </button>
+        <button
+          type="button"
+          className="app-navigation__item"
+          onClick={() => { void logout() }}
+          style={{ marginLeft: 'auto' }}
+        >
+          Sair ({user.name})
         </button>
       </nav>
 
