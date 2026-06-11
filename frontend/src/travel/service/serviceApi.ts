@@ -3,6 +3,7 @@ import type {
   CreateTripPayload,
   TripResponse
 } from '../../types/trip'
+import { apiClient } from "./apiClient";
 
 export class ApiError extends Error {
   readonly status: number
@@ -26,20 +27,18 @@ export function buildDepartureAt(date: string, time: string): string {
   return departureAt.toISOString()
 }
 
-export async function createTrip(
-  input: CreateTripInput
-): Promise<TripResponse> {
-  const payload = buildCreateTripPayload(input)
-
-  return {
-    id: Date.now(),
-    driver_name: 'Motorista',
-    origin: payload.origin,
-    destination: payload.destination,
-    departure_at: payload.departure_at,
-    seats_available: payload.seats_available,
-    price: '0.00',
-    is_cancelled: false
+export async function createTrip(input: CreateTripInput): Promise<TripResponse> {
+  const payload = buildCreateTripPayload(input);
+  try {
+    const { data } = await apiClient.post<TripResponse>("/api/trips/", payload);
+    return data;
+  } catch (err) {
+    const anyErr = err as { response?: { status?: number; data?: unknown } };
+    throw new ApiError(
+      "Não foi possível criar a viagem.",
+      anyErr?.response?.status ?? 0,
+      anyErr?.response?.data,
+    );
   }
 }
 
