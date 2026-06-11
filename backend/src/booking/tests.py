@@ -183,7 +183,7 @@ class BookingCancelEndpointTests(APITestCase):
 
     def test_cancel_requires_authentication(self):
         response = self.client.patch(self._url())
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
     def test_passenger_cancel_returns_200(self):
         self.client.force_authenticate(self.passenger)
@@ -322,7 +322,7 @@ class BookingEndpointTests(APITestCase):
         response = self.client.post(
             reverse("booking-create"), {"trip": self.trip.id}, format="json"
         )
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
     def test_create_returns_201_and_decrements_seats(self):
         self.client.force_authenticate(self.passenger)
@@ -350,7 +350,7 @@ class BookingEndpointTests(APITestCase):
 
     def test_agenda_requires_authentication(self):
         response = self.client.get(reverse("user-agenda"))
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
     def test_agenda_returns_paginated(self):
         self.client.force_authenticate(self.passenger)

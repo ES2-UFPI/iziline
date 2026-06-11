@@ -249,7 +249,7 @@ class TripEndpointTests(APITestCase):
             "departure_at": self.future.isoformat(),
             "seats_available": 2,
         }, format="json")
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
     def test_create_returns_201_with_calculated_price(self):
         self.client.force_authenticate(self.driver)
@@ -278,7 +278,7 @@ class TripEndpointTests(APITestCase):
     def test_list_requires_authentication(self):
         url = reverse("trip-list-create")
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
     def test_list_returns_paginated_bookable_trips(self):
         self.client.force_authenticate(self.driver)
@@ -363,7 +363,7 @@ class TripCancelEndpointTests(APITestCase):
     def test_cancel_requires_authentication(self):
         url = reverse("trip-cancel", args=[self.trip.id])
         response = self.client.patch(url)
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
     def test_driver_can_cancel_returns_200(self):
         self.client.force_authenticate(self.driver)
