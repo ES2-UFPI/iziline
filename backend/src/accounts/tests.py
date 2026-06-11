@@ -9,7 +9,7 @@ class AuthTests(APITestCase):
     def test_register_creates_and_authenticates(self):
         r = self.client.post(
             reverse("auth-register"),
-            {"username": "ana", "password": "secret123", "first_name": "Ana", "last_name": "Silva"},
+            {"username": "ana", "password": "Iziline#2026", "first_name": "Ana", "last_name": "Silva"},
             format="json",
         )
         self.assertEqual(r.status_code, 201)
@@ -22,9 +22,17 @@ class AuthTests(APITestCase):
     def test_register_duplicate_username(self):
         User.objects.create_user(username="ana", password="x")
         r = self.client.post(
-            reverse("auth-register"), {"username": "ana", "password": "secret123"}, format="json"
+            reverse("auth-register"), {"username": "ana", "password": "Iziline#2026"}, format="json"
         )
         self.assertEqual(r.status_code, 400)
+
+    def test_register_rejects_weak_password(self):
+        r = self.client.post(
+            reverse("auth-register"), {"username": "novo", "password": "123456"}, format="json"
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("password", r.data)
+        self.assertFalse(User.objects.filter(username="novo").exists())
 
     def test_login_valid(self):
         User.objects.create_user(username="ana", password="secret123")

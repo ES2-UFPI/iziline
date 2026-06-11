@@ -1,8 +1,8 @@
 from django.contrib.auth import authenticate, login, logout
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -10,6 +10,9 @@ from accounts.serializers import LoginSerializer, RegisterSerializer, UserSerial
 from accounts.services import user_register
 
 
+# csrf_protect garante token CSRF em register/login (a sessão é via cookie). O
+# frontend obtém o cookie csrftoken no GET /me/ antes de enviar estes POSTs.
+@method_decorator(csrf_protect, name="post")
 class RegisterApi(APIView):
     permission_classes = [AllowAny]
 
@@ -21,6 +24,7 @@ class RegisterApi(APIView):
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
+@method_decorator(csrf_protect, name="post")
 class LoginApi(APIView):
     permission_classes = [AllowAny]
 
@@ -35,7 +39,7 @@ class LoginApi(APIView):
 
 
 class LogoutApi(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         logout(request)

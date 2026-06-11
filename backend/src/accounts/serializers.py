@@ -1,9 +1,11 @@
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from rest_framework import serializers
 
 
 class RegisterSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=150)
-    password = serializers.CharField(write_only=True, min_length=6)
+    # A força da senha é validada por AUTH_PASSWORD_VALIDATORS no service.
+    username = serializers.CharField(max_length=150, validators=[UnicodeUsernameValidator()])
+    password = serializers.CharField(write_only=True)
     first_name = serializers.CharField(required=False, allow_blank=True, default="")
     last_name = serializers.CharField(required=False, allow_blank=True, default="")
 
