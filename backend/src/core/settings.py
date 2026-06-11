@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'trip',
     'booking',
-    'chat'
+    'chat',
+    'accounts',
 ]
 
 MIDDLEWARE = [
