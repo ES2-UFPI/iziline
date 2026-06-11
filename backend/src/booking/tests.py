@@ -237,7 +237,8 @@ class UserAgendaSelectorTests(APITestCase):
         self.future = timezone.now() + timedelta(days=2)
 
     def _trip(self, driver, **overrides):
-        return make_trip(driver, departure_at=self.future, **overrides)
+        overrides.setdefault("departure_at", self.future)
+        return make_trip(driver, **overrides)
 
     def test_includes_driver_and_passenger_roles(self):
         mine_as_driver = self._trip(self.me)
