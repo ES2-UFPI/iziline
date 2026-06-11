@@ -405,3 +405,29 @@ class TripCancelEndpointTests(APITestCase):
 
         booking.refresh_from_db()
         self.assertTrue(booking.is_cancelled)
+
+
+class FareEstimateApiTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="u", password="x")
+
+    def test_requires_authentication(self):
+        r = self.client.get(reverse("trip-fare-estimate"),
+                             {"origin": "Teresina", "destination": "Parnaiba", "seats_available": 2})
+        self.assertEqual(r.status_code, 403)
+
+    def test_returns_breakdown(self):
+        self.client.force_authenticate(self.user)
+        r = self.client.get(reverse("trip-fare-estimate"),
+                             {"origin": "Teresina", "destination": "Parnaiba", "seats_available": 2})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["distance_km"], 339)
+        self.assertEqual(r.data["occupants"], 3)
+        self.assertEqual(r.data["per_person"], "33.90")
+        self.assertEqual(r.data["total_cost"], "101.70")
+
+    def test_invalid_seats_returns_400(self):
+        self.client.force_authenticate(self.user)
+        r = self.client.get(reverse("trip-fare-estimate"),
+                             {"origin": "A", "destination": "B", "seats_available": 0})
+        self.assertEqual(r.status_code, 400)

@@ -6,12 +6,13 @@ from rest_framework.views import APIView
 
 from trip.selectors import trip_get, trip_list
 from trip.serializers import (
+    FareEstimateSerializer,
     TripCreateSerializer,
     TripDetailSerializer,
     TripListFilterSerializer,
     TripListSerializer,
 )
-from trip.services import trip_cancel, trip_create
+from trip.services import fare_breakdown, trip_cancel, trip_create
 
 
 class TripPagination(PageNumberPagination):
@@ -49,3 +50,17 @@ class TripCancelApi(APIView):
     def patch(self, request, trip_id):
         trip = trip_cancel(trip_id=trip_id, user=request.user)
         return Response(TripDetailSerializer(trip).data)
+
+
+class FareEstimateApi(APIView):
+    def get(self, request):
+        filters = FareEstimateSerializer(data=request.query_params)
+        filters.is_valid(raise_exception=True)
+        data = fare_breakdown(**filters.validated_data)
+        return Response({
+            "distance_km": data["distance_km"],
+            "cost_per_km": str(data["cost_per_km"]),
+            "total_cost": str(data["total_cost"]),
+            "occupants": data["occupants"],
+            "per_person": str(data["per_person"]),
+        })

@@ -55,3 +55,9 @@ class TripListSerializer(_TripOutputBase):
             "price",
         ]
         read_only_fields = fields  # serializer apenas de saída
+
+
+class FareEstimateSerializer(serializers.Serializer):
+    origin = serializers.CharField()
+    destination = serializers.CharField()
+    seats_available = serializers.IntegerField(min_value=1)

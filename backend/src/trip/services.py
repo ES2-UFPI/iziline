@@ -25,20 +25,31 @@ def _normalize_city(name):
     return "".join(c for c in stripped if not unicodedata.combining(c))
 
 
-def calculate_fare(*, origin, destination, seats_available):
-    """Calcula o rateio por pessoa (mock).
-
-    custo_total = distancia_km * CUSTO_POR_KM
-    rateio = custo_total / (seats_available + 1)  # passageiros + motorista
-    Retorna Decimal arredondado a 2 casas.
-    """
+def fare_breakdown(*, origin, destination, seats_available):
+    """Decomposição do rateio (mock). Fonte única de cálculo."""
     if seats_available < 1:
         raise ValidationError({"seats_available": "Deve haver ao menos 1 vaga."})
     key = frozenset({_normalize_city(origin), _normalize_city(destination)})
     distance_km = _KNOWN_DISTANCES_KM.get(key, _DEFAULT_DISTANCE_KM)
-    total_cost = Decimal(distance_km) * _COST_PER_KM
-    fare = total_cost / Decimal(seats_available + 1)
-    return fare.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    total_cost = (Decimal(distance_km) * _COST_PER_KM).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    occupants = seats_available + 1
+    per_person = (Decimal(distance_km) * _COST_PER_KM / Decimal(occupants)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    return {
+        "distance_km": distance_km,
+        "cost_per_km": _COST_PER_KM,
+        "total_cost": total_cost,
+        "occupants": occupants,
+        "per_person": per_person,
+    }
+
+
+def calculate_fare(*, origin, destination, seats_available):
+    """Rateio por pessoa (mock). Usa fare_breakdown como fonte única."""
+    return fare_breakdown(
+        origin=origin, destination=destination, seats_available=seats_available
+    )["per_person"]
 
 
 def trip_create(*, driver, origin, destination, departure_at, seats_available):
