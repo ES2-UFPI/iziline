@@ -1,8 +1,8 @@
-import './App.css'
-import { NewTripPage } from './travel/pages/NewTripPage/NewTripPage'
+﻿import './App.css'
+import { TripChatPage } from './travel/pages/TripChatPage/TripChatPage'
 
 function App() {
-  return <NewTripPage />
+  return <TripChatPage />
 }
 
 export default App
