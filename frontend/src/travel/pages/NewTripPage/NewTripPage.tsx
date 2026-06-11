@@ -2,7 +2,7 @@
 import { FormField } from "../../../components/FormField/FormField";
 import { calculateTripCosts } from "../../service/costService";
 import { getPossibleAddresses } from "../../service/locationService";
-import { createTrip } from "../../service/serviceApi";
+import { ApiError, createTrip } from "../../service/serviceApi";
 import type {
   NewTripFormData,
   TripCostEstimate,
@@ -10,6 +10,19 @@ import type {
 } from "../../../types/trip";
 import izilineLogo from "../../../assets/iziline.png";
 import "./NewTripPage.css";
+
+const GENERIC_CONFIRMATION_ERROR =
+  "Não foi possível confirmar a viagem. Tente novamente.";
+
+function extractConfirmationError(err: unknown): string {
+  const body = err instanceof ApiError ? err.body : undefined;
+  if (body && typeof body === "object") {
+    const first = Object.values(body as Record<string, unknown>)[0];
+    if (Array.isArray(first) && first.length > 0) return String(first[0]);
+    if (typeof first === "string") return first;
+  }
+  return GENERIC_CONFIRMATION_ERROR;
+}
 
 const initialFormData: NewTripFormData = {
   origin: "",
@@ -495,10 +508,8 @@ export function NewTripPage() {
       );
       setCreatedTrip(nextCreatedTrip);
       setStage("completed");
-    } catch {
-      setConfirmationError(
-        "Não foi possível confirmar a viagem. Tente novamente."
-      );
+    } catch (err) {
+      setConfirmationError(extractConfirmationError(err));
     } finally {
       setIsSubmitting(false);
     }
