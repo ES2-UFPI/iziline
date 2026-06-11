@@ -24,20 +24,12 @@ const lastCreatedTripStorageKey = "iziline:lastCreatedTrip";
 const minAvailableSeats = 1;
 const maxAvailableSeats = 8;
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
 
 const dateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "long",
   timeStyle: "short",
 });
 
-const percentFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "percent",
-  maximumFractionDigits: 0,
-});
 
 type AddressFieldName = "origin" | "destination";
 type NewTripFormErrors = Partial<Record<keyof NewTripFormData | "departure", string>>;
@@ -245,52 +237,24 @@ function TripCostCard({
           <span>Vagas</span>
           <strong>{formatSeats(tripData.availableSeats)}</strong>
         </div>
-        <div className="trip-detail">
-          <span>Rateio</span>
-          <strong>{formatOccupants(costEstimate.occupantsCount)}</strong>
-        </div>
       </div>
 
       <section className="trip-costs" aria-label="Cálculo de custos">
-        <div className="trip-costs__meta">
-          <span>
-            <small>Distância</small>
-            {formatDistance(costEstimate.distanceInKm)}
-          </span>
-          <span>
-            <small>Consumo</small>
-            {formatFuelEfficiency(costEstimate.fuelEfficiencyKmPerLiter)}
-          </span>
-          <span>
-            <small>Combustível</small>
-            {formatFuelPrice(costEstimate.fuelPricePerLiter)}
-          </span>
-        </div>
-
-        {costEstimate.breakdown.map((item) => (
-          <div className="trip-costs__row" key={item.label}>
-            <span>{item.label}</span>
-            <strong>{formatCurrency(item.amount)}</strong>
-          </div>
-        ))}
-
-        <div className="trip-costs__row">
-          <span>Taxa aplicada</span>
-          <strong>{percentFormatter.format(costEstimate.serviceFeeRate)}</strong>
-        </div>
-
-        <div className="trip-costs__total">
-          <div>
-            <span>Total estimado</span>
-            <small>Dividido entre {formatOccupants(costEstimate.occupantsCount)}</small>
-          </div>
-          <strong>{formatCurrency(costEstimate.totalCost)}</strong>
-        </div>
-
-        <div className="trip-costs__per-person">
-          <span>Valor por pessoa</span>
-          <strong>{formatCurrency(costEstimate.perPersonCost)}</strong>
-        </div>
+        <p>
+          Distância estimada: <strong>{costEstimate.distanceInKm} km</strong>
+        </p>
+        <p>
+          Custo por km: <strong>R$ {costEstimate.costPerKm}</strong>
+        </p>
+        <p>
+          Ocupantes (motorista + passageiros): <strong>{costEstimate.occupants}</strong>
+        </p>
+        <p>
+          Custo total: <strong>R$ {costEstimate.totalCost}</strong>
+        </p>
+        <p>
+          Valor por pessoa: <strong>R$ {costEstimate.perPersonCost}</strong>
+        </p>
       </section>
 
       {error && (
@@ -361,10 +325,6 @@ function CompletedTripCard({
   );
 }
 
-function formatCurrency(value: number) {
-  return currencyFormatter.format(value);
-}
-
 function formatDeparture(date: string, time: string) {
   return formatDateTime(`${date}T${time}`);
 }
@@ -379,25 +339,10 @@ function formatDateTime(value: string) {
   return dateTimeFormatter.format(date);
 }
 
-function formatDistance(value: number) {
-  return `${value.toLocaleString("pt-BR")} km`;
-}
-
-function formatFuelEfficiency(value: number) {
-  return `${value.toLocaleString("pt-BR")} km/L`;
-}
-
-function formatFuelPrice(value: number) {
-  return `${formatCurrency(value)}/L`;
-}
-
 function formatSeats(value: number) {
   return value === 1 ? "1 vaga" : `${value} vagas`;
 }
 
-function formatOccupants(value: number) {
-  return value === 1 ? "1 ocupante" : `${value} ocupantes`;
-}
 
 export function NewTripPage() {
   const [formData, setFormData] = useState<NewTripFormData>(initialFormData);
