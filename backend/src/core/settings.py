@@ -9,8 +9,11 @@ env = environ.Env()
 environ.Env.read_env(BASE_DIR / ".env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
+def secretkeyfalse():
+  print('secret key false')
+  return 'secretkey-qualquer'
 
-SECRET_KEY = env("SECRET_KEY")
+SECRET_KEY = env("SECRET_KEY", default=secretkeyfalse())
 DEBUG = env.bool("DEBUG", default=False)
 
 MAPBOX_ACCESS_TOKEN = env("MAPBOX_ACCESS_TOKEN")
