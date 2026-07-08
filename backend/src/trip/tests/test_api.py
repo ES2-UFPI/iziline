@@ -111,6 +111,52 @@ class TestTripFareQuoteApi:
         assert response.status_code == 400
 
 
+class TestDriverTripListApi:
+    def test_requires_authentication(self, api_client):
+        response = api_client.get("/api/trips/mine/")
+
+        assert response.status_code == 401
+
+    def test_requires_driver_profile(self, api_client, passenger_user):
+        api_client.force_authenticate(user=passenger_user)
+
+        response = api_client.get("/api/trips/mine/")
+
+        assert response.status_code == 403
+
+    def test_lists_only_trips_from_authenticated_driver(
+        self,
+        api_client,
+        django_user_model,
+        driver_profile,
+        open_trip,
+        city_origin,
+        city_destination,
+        origin_location,
+        destination_location,
+        future_departure_time,
+    ):
+        other_user = django_user_model.objects.create_user(username="other-driver", password="x")
+        other_driver = driver_profile.__class__.objects.create(user=other_user)
+        trip_services.create_trip(
+            driver=other_driver,
+            origin_city_id=city_origin.id,
+            destine_city_id=city_destination.id,
+            departure_time=future_departure_time,
+            available_spots=1,
+            origin_location_id=origin_location.id,
+            destination_location_id=destination_location.id,
+        )
+        api_client.force_authenticate(user=driver_profile.user)
+
+        response = api_client.get("/api/trips/mine/")
+
+        assert response.status_code == 200
+        assert [trip["id"] for trip in response.data] == [open_trip.id]
+        assert response.data[0]["cost"]["total_cost"] == "42.00"
+        assert response.data[0]["available_seats"] == 2
+
+
 class TestTripLifecycleApi:
     def test_start_trip_returns_updated_trip(
         self, api_client, passenger_user, driver_user, driver_profile, open_trip

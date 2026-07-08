@@ -9,9 +9,7 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 export type DriverTripSummary = TripDetail & { pendingRequestsCount: number };
 
-// Lista as viagens do motorista logado. Pendência conhecida do backend: o
-// contrato (api-contract-trip.md) não tem um endpoint "minhas viagens" — no
-// modo mock, refletimos as viagens criadas nesta sessão (ver driver-trips.mock).
+// Lista as viagens do motorista logado.
 export async function listDriverTrips(): Promise<DriverTripSummary[]> {
   if (USE_MOCK) {
     return listMockDriverTrips().map((trip) => ({
@@ -20,10 +18,17 @@ export async function listDriverTrips(): Promise<DriverTripSummary[]> {
     }));
   }
 
-  throw buildApiError(
-    new Error("driver trips endpoint not implemented"),
-    "Listar viagens do motorista ainda não é suportado pelo backend."
-  );
+  try {
+    const { data } = await apiClient.get<TripDetail[]>("/api/trips/mine/");
+    return Promise.all(
+      data.map(async (trip) => {
+        const pendingRequests = await listBookingRequests(trip.id, "pending");
+        return { ...trip, pendingRequestsCount: pendingRequests.length };
+      })
+    );
+  } catch (error) {
+    throw buildApiError(error, "Não foi possível listar as viagens do motorista.");
+  }
 }
 
 // 3b. Detalhe da viagem — GET /api/trips/<trip_id>/

@@ -10,6 +10,7 @@ urlpatterns = [
 
     # Trip 
     path("trips/", api.TripCreateApi.as_view(), name="create-trip"),
+    path("trips/mine/", api.DriverTripListApi.as_view(), name="driver-trips"),
     path("trips/<int:trip_id>/", api.TripDetailApi.as_view(), name="trip-detail"),
     path("trips/<int:trip_id>/cost/", api.TripCostDetailApi.as_view(), name="trip-cost-detail"),
     path("trips/<int:trip_id>/fare-split/", api.TripFareSplitApi.as_view(), name="trip-fare-split"),

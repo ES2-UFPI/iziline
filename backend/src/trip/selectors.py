@@ -67,6 +67,15 @@ def get_trip(trip_id: int) -> Trip:
     return Trip.objects.select_related("driver", "origin_city", "destine_city", "cost").get(pk=trip_id)
 
 
+def get_driver_trips(driver_profile_id: int) -> QuerySet[Trip]:
+    return (
+        Trip.objects.filter(driver_id=driver_profile_id)
+        .select_related("driver", "origin_city", "destine_city", "cost")
+        .prefetch_related("stops__location__city")
+        .order_by("-departure_time")
+    )
+
+
 # ---------------------------------------------------------------------------
 # Requests de booking de uma trip (visão do motorista)
 # ---------------------------------------------------------------------------

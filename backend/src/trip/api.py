@@ -9,7 +9,7 @@ entrada/saída e a chamada pro service/selector correto.
 
 from django.core.exceptions import PermissionDenied
 from rest_framework import serializers, status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -231,6 +231,16 @@ class TripCreateApi(APIView):
         driver = _get_driver_profile(request)
         trip = create_trip(driver=driver, **data)
         return Response(self.OutputSerializer(trip).data, status=status.HTTP_201_CREATED)
+
+
+class DriverTripListApi(APIView):
+    permission_classes = [IsAuthenticated]
+    OutputSerializer = TripDetailOutputSerializer
+
+    def get(self, request):
+        driver = _get_driver_profile(request)
+        trips = selectors.get_driver_trips(driver.id)
+        return Response(self.OutputSerializer(trips, many=True).data)
 
 
 class TripDetailApi(APIView):

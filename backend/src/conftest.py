@@ -56,6 +56,11 @@ def fake_routing_client_for_unit_tests(request, monkeypatch):
     monkeypatch.setattr(trip_services, "get_routing_client", lambda: FakeRoutingClient())
 
 
+@pytest.fixture(autouse=True)
+def stable_price_per_km_for_cost_tests(settings):
+    settings.PRICE_PER_KM = 1.00
+
+
 @pytest.fixture
 def city_origin(db):
     return City.objects.create(name="Teresina", state="PI", mapbox_place_id="city-origin")

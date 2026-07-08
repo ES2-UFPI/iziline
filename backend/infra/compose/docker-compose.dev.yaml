@@ -1,4 +1,18 @@
 services:
+  database:
+    image: postgres:17
+    container_name: django_database_dev
+    restart: unless-stopped
+    env_file:
+      - ./backend.dev.env
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     build:
       context: ../../
@@ -7,6 +21,8 @@ services:
 
     container_name: django_backend_dev
 
+    restart: unless-stopped
+
     command: >
       sh -c "
       python manage.py migrate &&
@@ -14,11 +30,53 @@ services:
       "
 
     env_file:
-      - ../../src/.env.dev
+      - ./backend.dev.env
+
+    environment:
+      MAPBOX_ACCESS_TOKEN: ${MAPBOX_ACCESS_TOKEN:-coloque-sua-chave-dev-aqui}
 
     volumes:
       - ../../src:/app
-      - ../../src/.env.dev:/app/.env:ro
+      - ../../pytest.ini:/pytest.ini:ro
+      - ./backend.dev.env:/app/.env:ro
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/cities/search/?q=health', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
     ports:
       - "8000:8000"
+
+  frontend:
+    image: node:24-alpine
+    container_name: vite_frontend_dev
+    restart: unless-stopped
+    working_dir: /app
+    command: >
+      sh -c "
+      npm install &&
+      npm run dev -- --host 0.0.0.0 --port 5173
+      "
+    environment:
+      VITE_USE_MOCK: "false"
+      VITE_API_BASE_URL: "http://localhost:8000"
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ../../../frontend:/app
+      - frontend_node_modules_dev:/app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data_dev:
+  frontend_node_modules_dev:
