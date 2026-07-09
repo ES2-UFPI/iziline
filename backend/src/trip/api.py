@@ -9,7 +9,9 @@ entrada/saída e a chamada pro service/selector correto.
 
 from django.core.exceptions import PermissionDenied
 from rest_framework import serializers, status
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -30,10 +32,17 @@ from .services import (
 
 
 def _get_driver_profile(request) -> ProfileDriver:
+  if not request.user or not request.user.is_authenticated:
+    raise NotAuthenticated("Você precisa estar autenticado pra fazer isso.")
+
   try:
     return request.user.driver_profile
   except ProfileDriver.DoesNotExist:
-    raise PermissionDenied("Você precisa ter um perfil de motorista pra fazer isso.")
+    driver_profile, _ = ProfileDriver.objects.get_or_create(
+      user=request.user,
+      defaults={"is_verified": True},
+    )
+    return driver_profile
 
 
 # ---------------------------------------------------------------------------
@@ -208,7 +217,7 @@ class TripSearchApi(APIView):
 # ---------------------------------------------------------------------------
 
 class TripCreateApi(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     class InputSerializer(serializers.Serializer):
         origin_city_id = serializers.IntegerField()
@@ -234,7 +243,7 @@ class TripCreateApi(APIView):
 
 class MyTripsApi(APIView):
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
  
     class OutputSerializer(serializers.Serializer):
         role = serializers.CharField()
