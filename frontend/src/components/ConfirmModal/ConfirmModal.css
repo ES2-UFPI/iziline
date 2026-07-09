@@ -63,3 +63,19 @@
   border: 1px solid #b42318;
   color: #ffffff;
 }
+
+.confirm-modal__button--danger:hover:not(:disabled) {
+  background: #911d15;
+  border-color: #911d15;
+}
+
+.confirm-modal__button--primary {
+  background: var(--teal-deep);
+  border: 1px solid var(--teal-deep);
+  color: #ffffff;
+}
+
+.confirm-modal__button--primary:hover:not(:disabled) {
+  background: #346361;
+  border-color: #346361;
+}

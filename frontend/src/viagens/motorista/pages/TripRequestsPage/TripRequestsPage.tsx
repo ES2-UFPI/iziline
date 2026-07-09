@@ -6,6 +6,7 @@ import {
   rejectRequest,
 } from "../../service/tripRequestsService";
 import { ApiError } from "../../../../app/services/apiError";
+import { ConfirmModal } from "../../../../components/ConfirmModal/ConfirmModal";
 import type { Booking, BookingStatus, TripStop } from "../../../../types/trip";
 import "./TripRequestsPage.css";
 
@@ -49,6 +50,7 @@ function stopLabel(stop: TripStop) {
 }
 
 type ActionState = "idle" | "accepting" | "rejecting";
+type Decision = "accept" | "reject";
 
 export function TripRequestsPage() {
   const { tripId: tripIdParam } = useParams();
@@ -59,6 +61,10 @@ export function TripRequestsPage() {
   const [loadError, setLoadError] = useState("");
   const [actionState, setActionState] = useState<Record<number, ActionState>>({});
   const [actionError, setActionError] = useState<Record<number, string>>({});
+  const [pendingDecision, setPendingDecision] = useState<{
+    booking: Booking;
+    decision: Decision;
+  } | null>(null);
 
   useEffect(() => {
     let shouldIgnore = false;
@@ -90,16 +96,16 @@ export function TripRequestsPage() {
     };
   }, [tripId, status]);
 
-  async function handleDecision(booking: Booking, decision: "accept" | "reject") {
-    const passengerLabel = `Passageiro #${booking.passenger}`;
-    const question =
-      decision === "accept"
-        ? `Aceitar a reserva de ${passengerLabel}?`
-        : `Recusar a reserva de ${passengerLabel}?`;
+  function requestDecision(booking: Booking, decision: Decision) {
+    setPendingDecision({ booking, decision });
+  }
 
-    if (!window.confirm(question)) {
+  async function confirmDecision() {
+    if (!pendingDecision) {
       return;
     }
+
+    const { booking, decision } = pendingDecision;
 
     setActionState((current) => ({
       ...current,
@@ -120,6 +126,7 @@ export function TripRequestsPage() {
 
       const refreshed = await listBookingRequests(tripId, status);
       setBookings(refreshed);
+      setPendingDecision(null);
     } catch (error) {
       setActionError((current) => ({
         ...current,
@@ -130,6 +137,7 @@ export function TripRequestsPage() {
               ? "Não foi possível aceitar essa solicitação."
               : "Não foi possível recusar essa solicitação.",
       }));
+      setPendingDecision(null);
     } finally {
       setActionState((current) => {
         const next = { ...current };
@@ -185,8 +193,8 @@ export function TripRequestsPage() {
                 tripId={tripId}
                 actionState={actionState[booking.id] ?? "idle"}
                 error={actionError[booking.id]}
-                onAccept={() => handleDecision(booking, "accept")}
-                onReject={() => handleDecision(booking, "reject")}
+                onAccept={() => requestDecision(booking, "accept")}
+                onReject={() => requestDecision(booking, "reject")}
               />
             ))}
           </div>
@@ -196,6 +204,32 @@ export function TripRequestsPage() {
           </div>
         )}
       </section>
+
+      {pendingDecision && (
+        <ConfirmModal
+          title={
+            pendingDecision.decision === "accept"
+              ? "Aceitar reserva"
+              : "Recusar reserva"
+          }
+          message={
+            pendingDecision.decision === "accept"
+              ? `Deseja aceitar a reserva de Passageiro #${pendingDecision.booking.passenger}?`
+              : `Deseja recusar a reserva de Passageiro #${pendingDecision.booking.passenger}?`
+          }
+          confirmLabel={pendingDecision.decision === "accept" ? "Aceitar" : "Recusar"}
+          cancelLabel="Voltar"
+          variant={pendingDecision.decision === "accept" ? "primary" : "danger"}
+          confirmingLabel={
+            pendingDecision.decision === "accept" ? "Aceitando..." : "Recusando..."
+          }
+          isConfirming={
+            (actionState[pendingDecision.booking.id] ?? "idle") !== "idle"
+          }
+          onConfirm={confirmDecision}
+          onCancel={() => setPendingDecision(null)}
+        />
+      )}
     </main>
   );
 }

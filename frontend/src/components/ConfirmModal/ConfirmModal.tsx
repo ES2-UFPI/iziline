@@ -6,6 +6,10 @@ type ConfirmModalProps = {
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Estilo do botão de confirmação: "danger" (padrão) para ações destrutivas, "primary" para positivas. */
+  variant?: "danger" | "primary";
+  /** Texto do botão de confirmação enquanto a ação está em andamento. */
+  confirmingLabel?: string;
   isConfirming?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -16,26 +20,32 @@ export function ConfirmModal({
   message,
   confirmLabel = "Confirmar",
   cancelLabel = "Voltar",
+  variant = "danger",
+  confirmingLabel = "Cancelando...",
   isConfirming = false,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !isConfirming) {
         onCancel();
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onCancel]);
+  }, [onCancel, isConfirming]);
 
   return (
     <div
       className="confirm-modal-overlay"
       role="presentation"
-      onClick={onCancel}
+      onClick={() => {
+        if (!isConfirming) {
+          onCancel();
+        }
+      }}
     >
       <div
         className="confirm-modal"
@@ -59,11 +69,11 @@ export function ConfirmModal({
           </button>
           <button
             type="button"
-            className="confirm-modal__button confirm-modal__button--danger"
+            className={`confirm-modal__button confirm-modal__button--${variant}`}
             onClick={onConfirm}
             disabled={isConfirming}
           >
-            {isConfirming ? "Cancelando..." : confirmLabel}
+            {isConfirming ? confirmingLabel : confirmLabel}
           </button>
         </div>
       </div>
