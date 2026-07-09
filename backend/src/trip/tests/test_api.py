@@ -2,6 +2,7 @@ import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from chat.models import Message
 from trip.models import Trip
 from trip.services import trip as trip_services
 
@@ -318,3 +319,93 @@ class TestTripDriverLocationApi:
         )
 
         assert response.status_code == 400
+
+
+class TestChatApi:
+    def _create_booking(self, *, passenger_user, open_trip):
+        stops = list(open_trip.stops.order_by("order"))
+        return trip_services.create_booking_request(
+            passenger=passenger_user,
+            trip_id=open_trip.id,
+            pickup_stop_id=stops[0].id,
+            dropoff_stop_id=stops[-1].id,
+        )
+
+    def test_booking_chat_allows_booking_passenger_and_trip_driver(
+        self, api_client, passenger_user, driver_user, open_trip
+    ):
+        booking = self._create_booking(passenger_user=passenger_user, open_trip=open_trip)
+        api_client.force_authenticate(user=passenger_user)
+
+        created = api_client.post(
+            f"/api/bookings/{booking.id}/messages/",
+            {"content": "Oi, podemos combinar o embarque?"},
+            format="json",
+        )
+
+        assert created.status_code == 201
+        assert created.data["sender_id"] == passenger_user.id
+        assert created.data["sender_name"] == (passenger_user.full_name or passenger_user.email)
+        assert created.data["content"] == "Oi, podemos combinar o embarque?"
+
+        api_client.force_authenticate(user=driver_user)
+        listed = api_client.get(f"/api/bookings/{booking.id}/messages/")
+
+        assert listed.status_code == 200
+        assert [message["id"] for message in listed.data] == [created.data["id"]]
+
+    def test_booking_chat_blocks_non_participant(
+        self, api_client, passenger_user, django_user_model, open_trip
+    ):
+        booking = self._create_booking(passenger_user=passenger_user, open_trip=open_trip)
+        outsider = django_user_model.objects.create_user(username="booking-chat-outsider", password="x")
+        api_client.force_authenticate(user=outsider)
+
+        response = api_client.get(f"/api/bookings/{booking.id}/messages/")
+
+        assert response.status_code == 403
+
+    def test_trip_chat_requires_confirmed_participant(
+        self, api_client, passenger_user, open_trip
+    ):
+        self._create_booking(passenger_user=passenger_user, open_trip=open_trip)
+        api_client.force_authenticate(user=passenger_user)
+
+        response = api_client.post(
+            f"/api/trips/{open_trip.id}/messages/",
+            {"content": "Ainda não fui aceito."},
+            format="json",
+        )
+
+        assert response.status_code == 403
+
+    def test_trip_chat_allows_confirmed_passenger_and_filters_after_id(
+        self, api_client, passenger_user, driver_user, driver_profile, open_trip
+    ):
+        booking = self._create_booking(passenger_user=passenger_user, open_trip=open_trip)
+        trip_services.accept_booking_request(booking_id=booking.id, driver_profile_id=driver_profile.id)
+        api_client.force_authenticate(user=passenger_user)
+
+        first = api_client.post(
+            f"/api/trips/{open_trip.id}/messages/",
+            {"content": "Primeira mensagem do grupo."},
+            format="json",
+        )
+        second = api_client.post(
+            f"/api/trips/{open_trip.id}/messages/",
+            {"content": "Segunda mensagem do grupo."},
+            format="json",
+        )
+
+        assert first.status_code == 201
+        assert second.status_code == 201
+        assert Message.objects.filter(trip=open_trip, booking__isnull=True).count() == 2
+
+        api_client.force_authenticate(user=driver_user)
+        listed = api_client.get(
+            f"/api/trips/{open_trip.id}/messages/",
+            {"after": first.data["id"]},
+        )
+
+        assert listed.status_code == 200
+        assert [message["id"] for message in listed.data] == [second.data["id"]]

@@ -21,10 +21,12 @@ urlpatterns = [
     path("trips/<int:trip_id>/reorder/", api.TripReorderStopsApi.as_view(), name="reorder-trip-stops"),
     path("trips/<int:trip_id>/recalculate-route/", api.TripRecalculateRouteApi.as_view(), name="recalculate-route"),
     path("trips/<int:trip_id>/booking-requests/", api.TripBookingRequestListApi.as_view(), name="trip-booking-requests"),
+    path("trips/<int:trip_id>/messages/", api.TripMessagesApi.as_view(), name="trip-messages"),
 
     # Booking request (passageiro)
     path("bookings/", api.BookingRequestCreateApi.as_view(), name="create-booking-request"),
     path("bookings/mine/", api.MyBookingsApi.as_view(), name="my-bookings"),
+    path("bookings/<int:booking_id>/messages/", api.BookingMessagesApi.as_view(), name="booking-messages"),
     path("bookings/<int:booking_id>/cancel/", api.BookingRequestCancelApi.as_view(), name="cancel-booking-request"),
 
     # Booking request (motorista decidindo)

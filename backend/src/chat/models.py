@@ -8,6 +8,13 @@ class Message(models.Model):
         on_delete=models.CASCADE,
         related_name='messages',
     )
+    booking = models.ForeignKey(
+        'trip.Booking',
+        on_delete=models.CASCADE,
+        related_name='messages',
+        null=True,
+        blank=True,
+    )
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -20,4 +27,5 @@ class Message(models.Model):
         ordering = ['sent_at']  # cronológico — mais antigas primeiro
 
     def __str__(self) -> str:
-        return f"Message {self.id} — {self.sender_id} → trip {self.trip_id} @ {self.sent_at.isoformat()}"
+        target = f"booking {self.booking_id}" if self.booking_id else f"trip {self.trip_id}"
+        return f"Message {self.id} — {self.sender_id} → {target} @ {self.sent_at.isoformat()}"
