@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../../../../app/providers/AuthProvider";
 import { ApiError } from "../../../../app/services/apiError";
 import type {
   TripDetail,
@@ -36,7 +37,11 @@ const statusLabels: Record<TripStatus, string> = {
   cancelled: "Cancelada",
 };
 
+const ownTripBookingMessage =
+  "Você não pode solicitar reserva em uma viagem que você cadastrou.";
+
 export function TripDetailPage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { tripId: tripIdParam } = useParams();
   const tripId = Number(tripIdParam);
@@ -62,6 +67,7 @@ export function TripDetailPage() {
   const selectedStopsAreValid = Boolean(
     trip && pickupStop && dropoffStop && pickupStop.order < dropoffStop.order
   );
+  const isOwnTrip = Boolean(trip && user && trip.driver === user.id);
 
   useEffect(() => {
     let shouldIgnore = false;
@@ -151,6 +157,11 @@ export function TripDetailPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (isOwnTrip) {
+      setBookingError(ownTripBookingMessage);
+      return;
+    }
 
     const validationError = validateBooking(trip, pickupStop, dropoffStop);
     if (validationError) {
@@ -276,6 +287,12 @@ export function TripDetailPage() {
                   </p>
                 )}
 
+                {isOwnTrip && (
+                  <p className="passenger-trip-warning">
+                    {ownTripBookingMessage}
+                  </p>
+                )}
+
                 <form className="passenger-booking-form" onSubmit={handleSubmit}>
                   <div className="passenger-booking-form__grid">
                     <label className="passenger-trip-field">
@@ -353,6 +370,7 @@ export function TripDetailPage() {
                         isSubmitting ||
                         trip.status !== "open" ||
                         trip.available_seats <= 0 ||
+                        isOwnTrip ||
                         !selectedStopsAreValid ||
                         !fareQuote
                       }
