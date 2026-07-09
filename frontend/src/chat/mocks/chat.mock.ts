@@ -2,11 +2,14 @@
 // é identificada por uma chave ("reservation:<id>" / "trip:<id>"). As mensagens
 // persistem enquanto a aba estiver aberta — o suficiente para o protótipo.
 
+import { ApiError } from "../../app/services/apiError";
 import { getMockUser } from "../../app/services/authStorage";
 import type { ChatMessage } from "../../types/chat";
 
 // Identidade fictícia da "outra ponta" da conversa, para as mensagens semeadas
 // não colidirem com o usuário logado (id 1 no mock).
+const EMPTY_MESSAGE_ERROR = "Digite uma mensagem antes de enviar.";
+
 const OTHER_DRIVER = { id: 900, name: "Motorista" };
 const OTHER_PASSENGER = { id: 901, name: "Passageiro" };
 const OTHER_PASSENGER_2 = { id: 902, name: "Outro passageiro" };
@@ -68,12 +71,17 @@ export function mockListMessages(key: string, afterId?: number): ChatMessage[] {
 }
 
 export function mockSendMessage(key: string, content: string): ChatMessage {
+  const messageContent = content.trim();
+  if (!messageContent) {
+    throw new ApiError(EMPTY_MESSAGE_ERROR, 400);
+  }
+
   const me = getMockUser();
   const message: ChatMessage = {
     id: nextId++,
     sender_id: me?.id ?? 1,
-    sender_name: me?.full_name ?? "Você",
-    content,
+    sender_name: me?.full_name ?? "Voc\u00ea",
+    content: messageContent,
     sent_at: new Date().toISOString(),
   };
   getThread(key).push(message);
