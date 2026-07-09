@@ -8,6 +8,13 @@ class Message(models.Model):
         on_delete=models.CASCADE,
         related_name='messages',
     )
+    booking = models.ForeignKey(
+        'trip.Booking',
+        on_delete=models.CASCADE,
+        related_name='messages',
+        null=True,
+        blank=True,
+    )
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

@@ -13,6 +13,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from chat import selectors as chat_selectors
+from chat.services import reservation_message_send, trip_message_send
 from . import selectors
 from .models import ProfileDriver, Trip, TripStop, Booking, Location, City, TripCost, DriverLocation
 from .services import (
@@ -173,6 +175,26 @@ class TripFareQuoteOutputSerializer(serializers.Serializer):
   estimated_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
   total_cost = serializers.DecimalField(max_digits=10, decimal_places=2)
   current_confirmed_passengers = serializers.IntegerField()
+
+
+class ChatMessageOutputSerializer(serializers.Serializer):
+  id = serializers.IntegerField()
+  sender_id = serializers.IntegerField()
+  sender_name = serializers.SerializerMethodField()
+  content = serializers.CharField()
+  sent_at = serializers.DateTimeField()
+
+  def get_sender_name(self, message):
+    full_name = getattr(message.sender, "full_name", "").strip()
+    return full_name or message.sender.email
+
+
+class ChatMessageInputSerializer(serializers.Serializer):
+  content = serializers.CharField(allow_blank=False, trim_whitespace=True)
+
+
+class ChatMessageQueryParamsSerializer(serializers.Serializer):
+  after = serializers.IntegerField(required=False, min_value=1)
  
 # ---------------------------------------------------------------------------
 # Busca de viagens (passageiro)
@@ -378,6 +400,60 @@ class TripDriverLocationApi(APIView):
             **payload.validated_data,
         )
         return Response(self.OutputSerializer(location).data)
+
+
+class BookingMessagesApi(APIView):
+    permission_classes = [AllowAny]
+    OutputSerializer = ChatMessageOutputSerializer
+    InputSerializer = ChatMessageInputSerializer
+    QueryParamsSerializer = ChatMessageQueryParamsSerializer
+
+    def get(self, request, booking_id: int):
+        params = self.QueryParamsSerializer(data=request.query_params)
+        params.is_valid(raise_exception=True)
+        messages = chat_selectors.reservation_message_list(
+            booking_id=booking_id,
+            user=request.user,
+            after_id=params.validated_data.get("after"),
+        )
+        return Response(self.OutputSerializer(messages, many=True).data)
+
+    def post(self, request, booking_id: int):
+        payload = self.InputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        message = reservation_message_send(
+            booking_id=booking_id,
+            sender=request.user,
+            content=payload.validated_data["content"],
+        )
+        return Response(self.OutputSerializer(message).data, status=status.HTTP_201_CREATED)
+
+
+class TripMessagesApi(APIView):
+    permission_classes = [AllowAny]
+    OutputSerializer = ChatMessageOutputSerializer
+    InputSerializer = ChatMessageInputSerializer
+    QueryParamsSerializer = ChatMessageQueryParamsSerializer
+
+    def get(self, request, trip_id: int):
+        params = self.QueryParamsSerializer(data=request.query_params)
+        params.is_valid(raise_exception=True)
+        messages = chat_selectors.trip_message_list(
+            trip_id=trip_id,
+            user=request.user,
+            after_id=params.validated_data.get("after"),
+        )
+        return Response(self.OutputSerializer(messages, many=True).data)
+
+    def post(self, request, trip_id: int):
+        payload = self.InputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        message = trip_message_send(
+            trip_id=trip_id,
+            sender=request.user,
+            content=payload.validated_data["content"],
+        )
+        return Response(self.OutputSerializer(message).data, status=status.HTTP_201_CREATED)
 
 
 # ==================
