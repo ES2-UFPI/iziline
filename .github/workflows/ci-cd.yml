@@ -115,7 +115,7 @@ jobs:
           tar -czf backend-source.tar.gz \
             backend/src/manage.py \
             backend/src/core \
-            backend/src/booking \
+            backend/src/users \
             backend/src/chat \
             backend/src/trip \
             backend/requirements.txt
